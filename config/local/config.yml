@@ -1,0 +1,15 @@
+server:
+  httpPort: "8082"
+
+services:
+  content:
+    grpc:
+      addr: "content-service:50051"
+    http:
+      addr: "http://content-service:8081"
+
+rabbitmq:
+  url: "amqp://admin:admin@rabbitmq:5672/"
+  topology:
+    exchange: "gateway_service.v1.events"
+    cv_request_routing_key: "cv.request.password"

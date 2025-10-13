@@ -1,0 +1,15 @@
+server:
+  httpPort: "8082"
+
+services:
+  content:
+    grpc:
+      addr: ""
+    http:
+      addr: ""
+
+rabbitmq:
+  url: ""
+  topology:
+    exchange: "gateway_service.v1.events"
+    cv_request_routing_key: "cv.request.password"

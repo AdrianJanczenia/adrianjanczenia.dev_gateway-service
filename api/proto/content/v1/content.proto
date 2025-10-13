@@ -1,0 +1,15 @@
+syntax = "proto3";
+package content.v1;
+option go_package = "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/api/proto/content/v1;contentv1";
+
+message GetContentRequest {
+  string lang = 1;
+}
+
+message GetContentResponse {
+  string json_content = 1;
+}
+
+service ContentService {
+  rpc Handle(GetContentRequest) returns (GetContentResponse);
+}
