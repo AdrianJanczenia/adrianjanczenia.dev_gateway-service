@@ -34,12 +34,9 @@ func Build(cfg *registry.Config) (*App, error) {
 	var err error
 
 	var grpcConn *grpc.ClientConn
-	dialCtx, cancel := context.WithTimeout(context.Background(), time.Duration(maxRetries)*retryDelay)
+	_, cancel := context.WithTimeout(context.Background(), time.Duration(maxRetries)*retryDelay)
 	defer cancel()
-	grpcConn, err = grpc.DialContext(dialCtx, cfg.Services.Content.GRPC.Addr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
+	grpcConn, err = grpc.NewClient(cfg.Services.Content.GRPC.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
