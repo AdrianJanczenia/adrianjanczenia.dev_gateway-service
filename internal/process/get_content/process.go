@@ -2,18 +2,18 @@ package get_content
 
 import "context"
 
-type GRPCClient interface {
-	GetContent(ctx context.Context, lang string) (string, error)
+type ContentService interface {
+	GetContent(ctx context.Context, lang string) ([]byte, error)
 }
 
 type Process struct {
-	grpcClient GRPCClient
+	contentService ContentService
 }
 
-func NewProcess(client GRPCClient) *Process {
-	return &Process{grpcClient: client}
+func NewProcess(contentService ContentService) *Process {
+	return &Process{contentService: contentService}
 }
 
-func (p *Process) Execute(lang string) (string, error) {
-	return p.grpcClient.GetContent(context.Background(), lang)
+func (p *Process) Process(ctx context.Context, lang string) ([]byte, error) {
+	return p.contentService.GetContent(ctx, lang)
 }

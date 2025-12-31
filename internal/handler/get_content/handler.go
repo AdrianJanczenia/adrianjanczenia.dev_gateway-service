@@ -1,37 +1,34 @@
 package get_content
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
 )
 
-type Process interface {
-	Execute(lang string) (string, error)
+type GetContentProcess interface {
+	Process(ctx context.Context, lang string) ([]byte, error)
 }
 
 type Handler struct {
-	process Process
+	process GetContentProcess
 }
 
-func NewHandler(p Process) *Handler {
-	return &Handler{process: p}
+func NewHandler(process GetContentProcess) *Handler {
+	return &Handler{process: process}
 }
 
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	lang := r.URL.Query().Get("lang")
 	if lang == "" {
-		lang = "pl"
+		lang = "en"
 	}
 
-	contentJSON, err := h.process.Execute(lang)
+	content, err := h.process.Process(r.Context(), lang)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to get content", http.StatusInternalServerError)
 		return
 	}
 
-	var content map[string]interface{}
-	_ = json.Unmarshal([]byte(contentJSON), &content)
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(content)
+	w.Write(content)
 }
