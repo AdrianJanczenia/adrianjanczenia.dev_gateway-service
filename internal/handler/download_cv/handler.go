@@ -1,6 +1,7 @@
 package download_cv
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -23,7 +24,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.process.Execute(w, r); err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		log.Printf("ERROR: CV download proxy failed: %v", err)
 		return
 	}
 }

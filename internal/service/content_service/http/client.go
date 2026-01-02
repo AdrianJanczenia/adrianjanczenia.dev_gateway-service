@@ -38,7 +38,11 @@ func (c *Client) ProxyCVDownload(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.WriteHeader(resp.StatusCode)
-	_, err = io.Copy(w, resp.Body)
 
-	return err
+	if resp.StatusCode == http.StatusOK {
+		_, err = io.Copy(w, resp.Body)
+		return err
+	}
+
+	return nil
 }
