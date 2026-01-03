@@ -1,4 +1,4 @@
-package get_cv_link
+package get_cv_token
 
 import (
 	"encoding/json"
@@ -33,13 +33,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	downloadURL, err := h.process.Execute(payload.Password, payload.Lang)
+	cvToken, err := h.process.Execute(payload.Password, payload.Lang)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	response := map[string]string{"downloadUrl": downloadURL}
+	response := map[string]string{"token": cvToken}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }

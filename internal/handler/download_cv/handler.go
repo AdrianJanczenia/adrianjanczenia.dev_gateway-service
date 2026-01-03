@@ -6,7 +6,7 @@ import (
 )
 
 type Process interface {
-	Execute(w http.ResponseWriter, r *http.Request) error
+	Execute(w http.ResponseWriter, token string, lang string) error
 }
 
 type Handler struct {
@@ -23,7 +23,15 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.process.Execute(w, r); err != nil {
+	token := r.URL.Query().Get("token")
+	lang := r.URL.Query().Get("lang")
+
+	if token == "" || lang == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err := h.process.Execute(w, token, lang); err != nil {
 		log.Printf("ERROR: CV download proxy failed: %v", err)
 		return
 	}

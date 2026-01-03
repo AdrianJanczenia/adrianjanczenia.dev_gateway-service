@@ -12,10 +12,10 @@ import (
 
 	handlerDownloadCv "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/handler/download_cv"
 	handlerGetContent "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/handler/get_content"
-	handlerGetCvLink "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/handler/get_cv_link"
+	handlerGetCvToken "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/handler/get_cv_token"
 	processDownloadCv "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/process/download_cv"
 	processGetContent "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/process/get_content"
-	processGetCvLink "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/process/get_cv_link"
+	processGetCvToken "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/process/get_cv_token"
 	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/registry"
 	serviceGRPC "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/service/content_service/grpc"
 	serviceHTTP "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/service/content_service/http"
@@ -59,17 +59,17 @@ func Build(cfg *registry.Config) (*App, error) {
 	downloadCvHTTPClient := serviceHTTP.NewClient(cfg.Services.Content.HTTP.Addr)
 
 	getContentProcess := processGetContent.NewProcess(contentGRPCClient)
-	getCvLinkProcess := processGetCvLink.NewProcess(rabbitClient, cfg.RabbitMQ.Topology.CVRequestRoutingKey)
+	getCvLinkProcess := processGetCvToken.NewProcess(rabbitClient, cfg.RabbitMQ.Topology.CVRequestRoutingKey)
 	downloadCvProcess := processDownloadCv.NewProcess(downloadCvHTTPClient)
 
 	getContentHandler := handlerGetContent.NewHandler(getContentProcess)
-	getCvLinkHandler := handlerGetCvLink.NewHandler(getCvLinkProcess)
+	getCvLinkHandler := handlerGetCvToken.NewHandler(getCvLinkProcess)
 	downloadCvHandler := handlerDownloadCv.NewHandler(downloadCvProcess)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/content", getContentHandler.Handle)
 	mux.HandleFunc("/api/v1/cv-request", getCvLinkHandler.Handle)
-	mux.HandleFunc("/download/cv", downloadCvHandler.Handle)
+	mux.HandleFunc("/api/v1/download/cv", downloadCvHandler.Handle)
 
 	httpServer := &http.Server{
 		Addr: ":" + cfg.Server.HTTPPort,

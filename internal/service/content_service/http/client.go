@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 type Client struct {
@@ -18,9 +19,13 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-func (c *Client) ProxyCVDownload(w http.ResponseWriter, r *http.Request) error {
-	url := fmt.Sprintf("%s%s", c.baseURL, r.URL.String())
-	req, err := http.NewRequest("GET", url, nil)
+func (c *Client) ProxyCVDownload(w http.ResponseWriter, token string, lang string) error {
+	params := url.Values{}
+	params.Add("token", token)
+	params.Add("lang", lang)
+
+	fullUrl := fmt.Sprintf("%s/download/cv?%s", c.baseURL, params.Encode())
+	req, err := http.NewRequest("GET", fullUrl, nil)
 	if err != nil {
 		return err
 	}

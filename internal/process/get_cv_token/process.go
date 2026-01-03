@@ -1,4 +1,4 @@
-package get_cv_link
+package get_cv_token
 
 import (
 	"encoding/json"
@@ -30,7 +30,7 @@ func (p *Process) Execute(password, lang string) (string, error) {
 	}
 
 	var resp struct {
-		URL   string `json:"url"`
+		Token string `json:"token"`
 		Error string `json:"error"`
 	}
 	if err := json.Unmarshal(responseBody, &resp); err != nil {
@@ -41,5 +41,5 @@ func (p *Process) Execute(password, lang string) (string, error) {
 		return "", errors.New(resp.Error)
 	}
 
-	return resp.URL, nil
+	return resp.Token, nil
 }
