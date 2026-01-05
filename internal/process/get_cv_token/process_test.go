@@ -1,28 +1,29 @@
 package get_cv_token
 
 import (
+	"context"
 	"errors"
 	"testing"
 )
 
 type mockRabbitMQClient struct {
-	requestFunc func(routingKey string, payload any) (body []byte, err error)
+	requestFunc func(ctx context.Context, routingKey string, payload any) (body []byte, err error)
 }
 
-func (m *mockRabbitMQClient) Request(routingKey string, payload any) (body []byte, err error) {
-	return m.requestFunc(routingKey, payload)
+func (m *mockRabbitMQClient) Request(ctx context.Context, routingKey string, payload any) (body []byte, err error) {
+	return m.requestFunc(ctx, routingKey, payload)
 }
 
 func TestProcess_GetCVToken(t *testing.T) {
 	tests := []struct {
 		name        string
-		requestFunc func(string, any) ([]byte, error)
+		requestFunc func(context.Context, string, any) ([]byte, error)
 		want        string
 		wantErr     bool
 	}{
 		{
 			name: "successful token retrieval",
-			requestFunc: func(rk string, p any) ([]byte, error) {
+			requestFunc: func(ctx context.Context, rk string, p any) ([]byte, error) {
 				return []byte(`{"token":"secret-token"}`), nil
 			},
 			want:    "secret-token",
@@ -30,7 +31,7 @@ func TestProcess_GetCVToken(t *testing.T) {
 		},
 		{
 			name: "rabbitmq error",
-			requestFunc: func(rk string, p any) ([]byte, error) {
+			requestFunc: func(ctx context.Context, rk string, p any) ([]byte, error) {
 				return nil, errors.New("amqp error")
 			},
 			want:    "",
@@ -38,7 +39,7 @@ func TestProcess_GetCVToken(t *testing.T) {
 		},
 		{
 			name: "malformed response",
-			requestFunc: func(rk string, p any) ([]byte, error) {
+			requestFunc: func(ctx context.Context, rk string, p any) ([]byte, error) {
 				return []byte(`{invalid}`), nil
 			},
 			want:    "",
@@ -50,7 +51,7 @@ func TestProcess_GetCVToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &mockRabbitMQClient{requestFunc: tt.requestFunc}
 			p := NewProcess(m, "key")
-			got, err := p.Execute("pass", "pl")
+			got, err := p.Execute(context.Background(), "pass", "pl")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
 			}

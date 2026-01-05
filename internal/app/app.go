@@ -29,13 +29,11 @@ type App struct {
 }
 
 func Build(cfg *registry.Config) (*App, error) {
-	maxRetries := 20
-	retryDelay := 2 * time.Second
+	maxRetries := cfg.Infrastructure.Retry.MaxAttempts
+	retryDelay := cfg.Infrastructure.Retry.DelaySeconds
 	var err error
 
 	var grpcConn *grpc.ClientConn
-	_, cancel := context.WithTimeout(context.Background(), time.Duration(maxRetries)*retryDelay)
-	defer cancel()
 	grpcConn, err = grpc.NewClient(cfg.Services.Content.GRPC.Addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,13 +22,13 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-func (c *Client) ProxyCVDownload(w http.ResponseWriter, token string, lang string) error {
+func (c *Client) ProxyCVDownload(ctx context.Context, w http.ResponseWriter, token string, lang string) error {
 	params := url.Values{}
 	params.Add("token", token)
 	params.Add("lang", lang)
 
 	fullUrl := fmt.Sprintf("%s/download/cv?%s", c.baseURL, params.Encode())
-	req, err := http.NewRequest("GET", fullUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", fullUrl, nil)
 	if err != nil {
 		return errors.ErrInternalServerError
 	}
@@ -42,9 +43,18 @@ func (c *Client) ProxyCVDownload(w http.ResponseWriter, token string, lang strin
 		return errors.FromHTTPStatus(resp.StatusCode)
 	}
 
+	allowList := map[string]bool{
+		"Content-Type":        true,
+		"Content-Disposition": true,
+		"Content-Length":      true,
+		"Last-Modified":       true,
+	}
+
 	for key, values := range resp.Header {
-		for _, value := range values {
-			w.Header().Add(key, value)
+		if allowList[key] {
+			for _, value := range values {
+				w.Header().Add(key, value)
+			}
 		}
 	}
 

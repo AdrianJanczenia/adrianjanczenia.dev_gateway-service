@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
@@ -11,8 +12,12 @@ import (
 )
 
 type Client struct {
-	conn     *amqp091.Connection
-	exchange string
+	conn         *amqp091.Connection
+	ch           *amqp091.Channel
+	exchange     string
+	replyQueue   string
+	pendingCalls map[string]chan []byte
+	mu           sync.RWMutex
 }
 
 func NewClient(url, exchange string) (*Client, error) {
@@ -21,64 +26,102 @@ func NewClient(url, exchange string) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{conn: conn, exchange: exchange}, nil
+	ch, err := conn.Channel()
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+
+	q, err := ch.QueueDeclare("", false, true, true, false, nil)
+	if err != nil {
+		ch.Close()
+		conn.Close()
+		return nil, err
+	}
+
+	client := &Client{
+		conn:         conn,
+		ch:           ch,
+		exchange:     exchange,
+		replyQueue:   q.Name,
+		pendingCalls: make(map[string]chan []byte),
+	}
+
+	go client.handleReplies()
+
+	return client, nil
 }
 
-func (c *Client) Request(routingKey string, payload any) (body []byte, err error) {
-	ch, err := c.conn.Channel()
+func (c *Client) handleReplies() {
+	msgs, err := c.ch.Consume(c.replyQueue, "", true, true, false, false, nil)
 	if err != nil {
-		return nil, errors.ErrInternalServerError
-	}
-	defer ch.Close()
-
-	replyQueue, err := ch.QueueDeclare("", false, true, true, false, nil)
-	if err != nil {
-		return nil, errors.ErrInternalServerError
+		return
 	}
 
-	msgs, err := ch.Consume(replyQueue.Name, "", true, true, false, false, nil)
-	if err != nil {
-		return nil, errors.ErrInternalServerError
-	}
+	for d := range msgs {
+		c.mu.RLock()
+		resChan, ok := c.pendingCalls[d.CorrelationId]
+		c.mu.RUnlock()
 
+		if ok {
+			resChan <- d.Body
+			c.mu.Lock()
+			delete(c.pendingCalls, d.CorrelationId)
+			c.mu.Unlock()
+		}
+	}
+}
+
+func (c *Client) Request(ctx context.Context, routingKey string, payload any) ([]byte, error) {
 	corrID := uuid.New().String()
+	resChan := make(chan []byte, 1)
+
+	c.mu.Lock()
+	c.pendingCalls[corrID] = resChan
+	c.mu.Unlock()
+
 	requestBody, err := json.Marshal(payload)
 	if err != nil {
 		return nil, errors.ErrInternalServerError
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	err = ch.PublishWithContext(ctx, c.exchange, routingKey, false, false, amqp091.Publishing{
+	err = c.ch.PublishWithContext(ctx, c.exchange, routingKey, false, false, amqp091.Publishing{
 		ContentType:   "application/json",
 		CorrelationId: corrID,
-		ReplyTo:       replyQueue.Name,
+		ReplyTo:       c.replyQueue,
 		Body:          requestBody,
 	})
 	if err != nil {
+		c.mu.Lock()
+		delete(c.pendingCalls, corrID)
+		c.mu.Unlock()
 		return nil, errors.ErrServiceUnavailable
 	}
 
 	select {
-	case d := <-msgs:
-		if corrID == d.CorrelationId {
-			var resp struct {
-				Error string `json:"error"`
-			}
-			json.Unmarshal(d.Body, &resp)
-			if resp.Error != "" {
-				return nil, errors.FromSlug(resp.Error)
-			}
-			return d.Body, nil
+	case body := <-resChan:
+		var resp struct {
+			Error string `json:"error"`
 		}
-	case <-time.After(5 * time.Second):
+		json.Unmarshal(body, &resp)
+		if resp.Error != "" {
+			return nil, errors.FromSlug(resp.Error)
+		}
+		return body, nil
+	case <-ctx.Done():
+		c.mu.Lock()
+		delete(c.pendingCalls, corrID)
+		c.mu.Unlock()
+		return nil, ctx.Err()
+	case <-time.After(10 * time.Second):
+		c.mu.Lock()
+		delete(c.pendingCalls, corrID)
+		c.mu.Unlock()
 		return nil, errors.ErrServiceUnavailable
 	}
-
-	return nil, errors.ErrInternalServerError
 }
 
 func (c *Client) Close() error {
+	_ = c.ch.Close()
 	return c.conn.Close()
 }

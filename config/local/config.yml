@@ -1,6 +1,11 @@
 server:
   httpPort: "8082"
 
+infrastructure:
+  retry:
+    maxAttempts: 10
+    delaySeconds: 2
+
 services:
   content:
     grpc:

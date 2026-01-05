@@ -1,11 +1,12 @@
 package get_cv_token
 
 import (
+	"context"
 	"encoding/json"
 )
 
 type RabbitMQClient interface {
-	Request(routingKey string, payload any) (body []byte, err error)
+	Request(ctx context.Context, routingKey string, payload any) (body []byte, err error)
 }
 
 type Process struct {
@@ -20,10 +21,10 @@ func NewProcess(client RabbitMQClient, routingKey string) *Process {
 	}
 }
 
-func (p *Process) Execute(password, lang string) (string, error) {
+func (p *Process) Execute(ctx context.Context, password, lang string) (string, error) {
 	payload := map[string]string{"password": password, "lang": lang}
 
-	responseBody, err := p.rabbitClient.Request(p.routingKey, payload)
+	responseBody, err := p.rabbitClient.Request(ctx, p.routingKey, payload)
 	if err != nil {
 		return "", err
 	}

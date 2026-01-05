@@ -1,6 +1,7 @@
 package get_cv_token
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -8,7 +9,7 @@ import (
 )
 
 type GetCVTokenProcess interface {
-	Execute(password, lang string) (string, error)
+	Execute(ctx context.Context, password, lang string) (string, error)
 }
 
 type Handler struct {
@@ -35,7 +36,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cvToken, err := h.process.Execute(payload.Password, payload.Lang)
+	cvToken, err := h.process.Execute(r.Context(), payload.Password, payload.Lang)
 	if err != nil {
 		errors.WriteJSON(w, err)
 		return

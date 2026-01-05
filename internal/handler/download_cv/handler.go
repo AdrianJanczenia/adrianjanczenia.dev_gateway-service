@@ -1,13 +1,14 @@
 package download_cv
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
 )
 
 type DownloadCVProcess interface {
-	Execute(w http.ResponseWriter, token string, lang string) error
+	Execute(ctx context.Context, w http.ResponseWriter, token string, lang string) error
 }
 
 type Handler struct {
@@ -32,7 +33,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.process.Execute(w, token, lang); err != nil {
+	if err := h.process.Execute(r.Context(), w, token, lang); err != nil {
 		errors.WriteJSON(w, err)
 		return
 	}

@@ -2,6 +2,7 @@ package get_cv_token
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,11 +12,11 @@ import (
 )
 
 type mockGetCVTokenProcess struct {
-	executeFunc func(password, lang string) (string, error)
+	executeFunc func(ctx context.Context, password, lang string) (string, error)
 }
 
-func (m *mockGetCVTokenProcess) Execute(password, lang string) (string, error) {
-	return m.executeFunc(password, lang)
+func (m *mockGetCVTokenProcess) Execute(ctx context.Context, password, lang string) (string, error) {
+	return m.executeFunc(ctx, password, lang)
 }
 
 func TestHandler_GetCVToken(t *testing.T) {
@@ -23,7 +24,7 @@ func TestHandler_GetCVToken(t *testing.T) {
 		name        string
 		method      string
 		body        any
-		executeFunc func(string, string) (string, error)
+		executeFunc func(context.Context, string, string) (string, error)
 		wantStatus  int
 		wantToken   string
 	}{
@@ -31,7 +32,7 @@ func TestHandler_GetCVToken(t *testing.T) {
 			name:   "success",
 			method: http.MethodPost,
 			body:   map[string]string{"password": "123", "lang": "pl"},
-			executeFunc: func(p, l string) (string, error) {
+			executeFunc: func(ctx context.Context, p, l string) (string, error) {
 				return "tok", nil
 			},
 			wantStatus: http.StatusOK,
@@ -52,7 +53,7 @@ func TestHandler_GetCVToken(t *testing.T) {
 			name:   "auth error",
 			method: http.MethodPost,
 			body:   map[string]string{"password": "wrong", "lang": "pl"},
-			executeFunc: func(p, l string) (string, error) {
+			executeFunc: func(ctx context.Context, p, l string) (string, error) {
 				return "", appErrors.ErrInvalidPassword
 			},
 			wantStatus: http.StatusUnauthorized,

@@ -1,6 +1,7 @@
 package download_cv
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -8,11 +9,11 @@ import (
 )
 
 type mockDownloadCVProcess struct {
-	executeFunc func(w http.ResponseWriter, token string, lang string) error
+	executeFunc func(ctx context.Context, w http.ResponseWriter, token string, lang string) error
 }
 
-func (m *mockDownloadCVProcess) Execute(w http.ResponseWriter, token string, lang string) error {
-	return m.executeFunc(w, token, lang)
+func (m *mockDownloadCVProcess) Execute(ctx context.Context, w http.ResponseWriter, token string, lang string) error {
+	return m.executeFunc(ctx, w, token, lang)
 }
 
 func TestHandler_DownloadCV(t *testing.T) {
@@ -20,14 +21,14 @@ func TestHandler_DownloadCV(t *testing.T) {
 		name        string
 		method      string
 		url         string
-		executeFunc func(http.ResponseWriter, string, string) error
+		executeFunc func(context.Context, http.ResponseWriter, string, string) error
 		wantStatus  int
 	}{
 		{
 			name:   "success",
 			method: http.MethodGet,
 			url:    "/api/v1/download/cv?token=abc&lang=pl",
-			executeFunc: func(w http.ResponseWriter, t, l string) error {
+			executeFunc: func(ctx context.Context, w http.ResponseWriter, t, l string) error {
 				w.WriteHeader(http.StatusOK)
 				return nil
 			},
@@ -43,7 +44,7 @@ func TestHandler_DownloadCV(t *testing.T) {
 			name:   "internal error",
 			method: http.MethodGet,
 			url:    "/api/v1/download/cv?token=abc&lang=pl",
-			executeFunc: func(w http.ResponseWriter, t, l string) error {
+			executeFunc: func(ctx context.Context, w http.ResponseWriter, t, l string) error {
 				return errors.New("fail")
 			},
 			wantStatus: http.StatusInternalServerError,
