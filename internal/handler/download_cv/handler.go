@@ -6,15 +6,15 @@ import (
 	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
 )
 
-type Process interface {
+type DownloadCVProcess interface {
 	Execute(w http.ResponseWriter, token string, lang string) error
 }
 
 type Handler struct {
-	process Process
+	process DownloadCVProcess
 }
 
-func NewHandler(p Process) *Handler {
+func NewHandler(p DownloadCVProcess) *Handler {
 	return &Handler{process: p}
 }
 

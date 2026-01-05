@@ -52,5 +52,15 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	overrideFromEnv("CONTENT_SERVICE_GRPC_ADDR", &cfg.Services.Content.GRPC.Addr)
+	overrideFromEnv("CONTENT_SERVICE_HTTP_ADDR", &cfg.Services.Content.HTTP.Addr)
+	overrideFromEnv("RABBITMQ_URL", &cfg.RabbitMQ.URL)
+
 	return &cfg, nil
+}
+
+func overrideFromEnv(envKey string, configValue *string) {
+	if value, exists := os.LookupEnv(envKey); exists && value != "" {
+		*configValue = value
+	}
 }

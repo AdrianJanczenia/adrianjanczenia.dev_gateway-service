@@ -2,18 +2,18 @@ package download_cv
 
 import "net/http"
 
-type HTTPClient interface {
+type ContentServiceClient interface {
 	ProxyCVDownload(w http.ResponseWriter, token string, lang string) error
 }
 
 type Process struct {
-	httpClient HTTPClient
+	contentServiceClient ContentServiceClient
 }
 
-func NewProcess(client HTTPClient) *Process {
-	return &Process{httpClient: client}
+func NewProcess(contentServiceClient ContentServiceClient) *Process {
+	return &Process{contentServiceClient: contentServiceClient}
 }
 
 func (p *Process) Execute(w http.ResponseWriter, token string, lang string) error {
-	return p.httpClient.ProxyCVDownload(w, token, lang)
+	return p.contentServiceClient.ProxyCVDownload(w, token, lang)
 }

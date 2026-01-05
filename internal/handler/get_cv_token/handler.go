@@ -7,15 +7,15 @@ import (
 	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
 )
 
-type Process interface {
+type GetCVTokenProcess interface {
 	Execute(password, lang string) (string, error)
 }
 
 type Handler struct {
-	process Process
+	process GetCVTokenProcess
 }
 
-func NewHandler(p Process) *Handler {
+func NewHandler(p GetCVTokenProcess) *Handler {
 	return &Handler{process: p}
 }
 
