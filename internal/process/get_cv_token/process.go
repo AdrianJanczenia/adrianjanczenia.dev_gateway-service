@@ -2,7 +2,6 @@ package get_cv_token
 
 import (
 	"encoding/json"
-	"errors"
 )
 
 type RabbitMQClient interface {
@@ -31,14 +30,9 @@ func (p *Process) Execute(password, lang string) (string, error) {
 
 	var resp struct {
 		Token string `json:"token"`
-		Error string `json:"error"`
 	}
 	if err := json.Unmarshal(responseBody, &resp); err != nil {
 		return "", err
-	}
-
-	if resp.Error != "" {
-		return "", errors.New(resp.Error)
 	}
 
 	return resp.Token, nil

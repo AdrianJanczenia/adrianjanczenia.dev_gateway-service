@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
 )
 
 type Client struct {
@@ -27,14 +29,18 @@ func (c *Client) ProxyCVDownload(w http.ResponseWriter, token string, lang strin
 	fullUrl := fmt.Sprintf("%s/download/cv?%s", c.baseURL, params.Encode())
 	req, err := http.NewRequest("GET", fullUrl, nil)
 	if err != nil {
-		return err
+		return errors.ErrInternalServerError
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return err
+		return errors.ErrServiceUnavailable
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.FromHTTPStatus(resp.StatusCode)
+	}
 
 	for key, values := range resp.Header {
 		for _, value := range values {
@@ -43,11 +49,7 @@ func (c *Client) ProxyCVDownload(w http.ResponseWriter, token string, lang strin
 	}
 
 	w.WriteHeader(resp.StatusCode)
+	_, err = io.Copy(w, resp.Body)
 
-	if resp.StatusCode == http.StatusOK {
-		_, err = io.Copy(w, resp.Body)
-		return err
-	}
-
-	return nil
+	return err
 }

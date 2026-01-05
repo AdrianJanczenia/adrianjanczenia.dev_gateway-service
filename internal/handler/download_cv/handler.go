@@ -1,8 +1,9 @@
 package download_cv
 
 import (
-	"log"
 	"net/http"
+
+	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
 )
 
 type Process interface {
@@ -19,7 +20,7 @@ func NewHandler(p Process) *Handler {
 
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		errors.WriteJSON(w, errors.ErrMethodNotAllowed)
 		return
 	}
 
@@ -27,12 +28,12 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	lang := r.URL.Query().Get("lang")
 
 	if token == "" || lang == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		errors.WriteJSON(w, errors.ErrInvalidInput)
 		return
 	}
 
 	if err := h.process.Execute(w, token, lang); err != nil {
-		log.Printf("ERROR: CV download proxy failed: %v", err)
+		errors.WriteJSON(w, err)
 		return
 	}
 }

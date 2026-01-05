@@ -3,6 +3,8 @@ package get_content
 import (
 	"context"
 	"net/http"
+
+	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
 )
 
 type GetContentProcess interface {
@@ -25,7 +27,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	content, err := h.process.Process(r.Context(), lang)
 	if err != nil {
-		http.Error(w, "Failed to get content", http.StatusInternalServerError)
+		errors.WriteJSON(w, err)
 		return
 	}
 

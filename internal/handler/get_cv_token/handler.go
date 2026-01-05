@@ -3,6 +3,8 @@ package get_cv_token
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
 )
 
 type Process interface {
@@ -19,7 +21,7 @@ func NewHandler(p Process) *Handler {
 
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		errors.WriteJSON(w, errors.ErrMethodNotAllowed)
 		return
 	}
 
@@ -29,13 +31,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		errors.WriteJSON(w, errors.ErrInvalidInput)
 		return
 	}
 
 	cvToken, err := h.process.Execute(payload.Password, payload.Lang)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		errors.WriteJSON(w, err)
 		return
 	}
 
