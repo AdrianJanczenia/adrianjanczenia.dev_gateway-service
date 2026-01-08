@@ -38,14 +38,15 @@ The project follows a rigorous layered architecture to ensure high testability, 
 
 ## Environment Configuration
 
-The service utilizes a configuration system based on YAML files and environment variables, following the fail-fast principle.
+The service utilizes a configuration system based on YAML files and environment variables.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| APP_ENV | Runtime environment (local/production) | local |
-| CONTENT_SERVICE_GRPC_ADDR | Address of the Content Service gRPC server | localhost:50051 |
-| CONTENT_SERVICE_HTTP_ADDR | Base URL for Content Service HTTP API | http://localhost:8081 |
-| RABBITMQ_URL | Connection string for RabbitMQ broker | amqp://... |
+| Configuration Path | Description |
+|----------|-------------|
+| server.httpPort | Port on which the gateway listens for HTTP requests. |
+| services.content.grpc.addr | Address of the Content Service gRPC server. |
+| services.content.http.addr | Base URL for Content Service HTTP API (file streaming). |
+| rabbitmq.url | Connection string for RabbitMQ broker. |
+| rabbitmq.topology.exchange | Target exchange for publishing events. |
 
 ## Development and Deployment
 
