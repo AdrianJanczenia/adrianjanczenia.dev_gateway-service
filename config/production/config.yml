@@ -12,6 +12,9 @@ services:
       addr: ""
     http:
       addr: ""
+  captcha:
+    http:
+      addr: ""
 
 rabbitmq:
   url: ""

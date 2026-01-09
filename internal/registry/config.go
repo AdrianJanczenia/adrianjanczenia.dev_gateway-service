@@ -28,6 +28,11 @@ type Config struct {
 				Addr string `yaml:"addr"`
 			} `yaml:"http"`
 		} `yaml:"content"`
+		Captcha struct {
+			HTTP struct {
+				Addr string `yaml:"addr"`
+			} `yaml:"http"`
+		} `yaml:"captcha"`
 	}
 	RabbitMQ struct {
 		URL      string `yaml:"url"`
@@ -60,6 +65,11 @@ func LoadConfig() (*Config, error) {
 					Addr string `yaml:"addr"`
 				} `yaml:"http"`
 			} `yaml:"content"`
+			Captcha struct {
+				HTTP struct {
+					Addr string `yaml:"addr"`
+				} `yaml:"http"`
+			} `yaml:"captcha"`
 		} `yaml:"services"`
 		RabbitMQ struct {
 			URL      string `yaml:"url"`
@@ -94,11 +104,13 @@ func LoadConfig() (*Config, error) {
 	cfg.Infrastructure.Retry.DelaySeconds = time.Duration(yc.Infrastructure.Retry.DelaySeconds) * time.Second
 	cfg.Services.Content.GRPC.Addr = yc.Services.Content.GRPC.Addr
 	cfg.Services.Content.HTTP.Addr = yc.Services.Content.HTTP.Addr
+	cfg.Services.Captcha.HTTP.Addr = yc.Services.Captcha.HTTP.Addr
 	cfg.RabbitMQ.URL = yc.RabbitMQ.URL
 	cfg.RabbitMQ.Topology = yc.RabbitMQ.Topology
 
 	overrideFromEnv("CONTENT_SERVICE_GRPC_ADDR", &cfg.Services.Content.GRPC.Addr)
 	overrideFromEnv("CONTENT_SERVICE_HTTP_ADDR", &cfg.Services.Content.HTTP.Addr)
+	overrideFromEnv("CAPTCHA_SERVICE_HTTP_ADDR", &cfg.Services.Captcha.HTTP.Addr)
 	overrideFromEnv("RABBITMQ_URL", &cfg.RabbitMQ.URL)
 
 	return cfg, nil

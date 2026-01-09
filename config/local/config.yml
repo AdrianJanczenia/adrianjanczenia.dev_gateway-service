@@ -12,6 +12,9 @@ services:
       addr: "content-service:50051"
     http:
       addr: "http://content-service:8081"
+  captcha:
+    http:
+      addr: "http://captcha-service:8083"
 
 rabbitmq:
   url: "amqp://admin:admin@rabbitmq:5672/"

@@ -33,6 +33,13 @@ var (
 	ErrCVNotFound          = &AppError{HTTPStatus: http.StatusNotFound, Slug: "error_cv_not_found"}
 	ErrCVExpired           = &AppError{HTTPStatus: http.StatusGone, Slug: "error_cv_expired"}
 	ErrContentNotFound     = &AppError{HTTPStatus: http.StatusNotFound, Slug: "error_message"}
+	ErrInvalidSignature    = &AppError{HTTPStatus: http.StatusForbidden, Slug: "error_pow_signature"}
+	ErrSeedAlreadyUsed     = &AppError{HTTPStatus: http.StatusConflict, Slug: "error_pow_double_spend"}
+	ErrPowExpired          = &AppError{HTTPStatus: http.StatusGone, Slug: "error_pow_expired"}
+	ErrInsufficientWork    = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_pow_work"}
+	ErrCaptchaNotFound     = &AppError{HTTPStatus: http.StatusNotFound, Slug: "error_captcha_not_found"}
+	ErrInvalidCaptchaValue = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_captcha_invalid"}
+	ErrNoTriesLeft         = &AppError{HTTPStatus: http.StatusGone, Slug: "error_captcha_expired"}
 )
 
 func FromSlug(slug string) *AppError {
@@ -45,6 +52,20 @@ func FromSlug(slug string) *AppError {
 		return ErrCVNotFound
 	case "error_cv_server":
 		return ErrInternalServerError
+	case "error_pow_signature":
+		return ErrInvalidSignature
+	case "error_pow_double_spend":
+		return ErrSeedAlreadyUsed
+	case "error_pow_expired":
+		return ErrPowExpired
+	case "error_pow_work":
+		return ErrInsufficientWork
+	case "error_captcha_not_found":
+		return ErrCaptchaNotFound
+	case "error_captcha_invalid":
+		return ErrInvalidCaptchaValue
+	case "error_captcha_expired":
+		return ErrNoTriesLeft
 	case "error_message":
 		return ErrServiceUnavailable
 	default:
@@ -66,6 +87,10 @@ func FromHTTPStatus(status int) *AppError {
 		return ErrMethodNotAllowed
 	case http.StatusServiceUnavailable:
 		return ErrServiceUnavailable
+	case http.StatusForbidden:
+		return ErrInvalidSignature
+	case http.StatusConflict:
+		return ErrSeedAlreadyUsed
 	default:
 		return ErrInternalServerError
 	}

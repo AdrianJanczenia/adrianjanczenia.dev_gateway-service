@@ -51,7 +51,7 @@ func TestProcess_GetCVToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &mockRabbitMQClient{requestFunc: tt.requestFunc}
 			p := NewProcess(m, "key")
-			got, err := p.Execute(context.Background(), "pass", "pl")
+			got, err := p.Process(context.Background(), "pass", "pl", "123")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
 			}
