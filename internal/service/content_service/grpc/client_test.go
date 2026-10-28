@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	pb "github.com/AdrianJanczenia/adrianjanczenia.dev_content-service/api/proto/v1"
 	appErrors "github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
@@ -31,6 +32,10 @@ func TestGRPCClient_GetContent(t *testing.T) {
 		{
 			name: "successful response",
 			handleFunc: func(ctx context.Context, in *pb.GetContentRequest, opts ...grpc.CallOption) (*pb.GetContentResponse, error) {
+				deadline, ok := ctx.Deadline()
+				if !ok || time.Until(deadline) > 5*time.Second {
+					t.Error("gRPC request has no bounded deadline")
+				}
 				return &pb.GetContentResponse{JsonContent: `{"key":"value"}`}, nil
 			},
 			want:    []byte(`{"key":"value"}`),
@@ -59,7 +64,7 @@ func TestGRPCClient_GetContent(t *testing.T) {
 			m := &mockContentServiceClient{handleFunc: tt.handleFunc}
 			c := &Client{client: m}
 			got, err := c.GetContent(context.Background(), "pl")
-			if err != tt.wantErr {
+			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("GetContent() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if string(got) != string(tt.want) {

@@ -43,8 +43,6 @@ type Config struct {
 	} `yaml:"rabbitmq"`
 }
 
-var Cfg *Config
-
 func LoadConfig() (*Config, error) {
 	type yamlConfig struct {
 		Server struct {

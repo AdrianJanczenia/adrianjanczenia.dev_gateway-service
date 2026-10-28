@@ -60,6 +60,9 @@ func TestHandler_GetPow(t *testing.T) {
 			if w.Code != tt.wantStatus {
 				t.Errorf("Handle() status = %v, wantStatus %v", w.Code, tt.wantStatus)
 			}
+			if tt.wantStatus == http.StatusMethodNotAllowed && w.Header().Get("Allow") != http.MethodGet {
+				t.Errorf("Allow = %q, want GET", w.Header().Get("Allow"))
+			}
 		})
 	}
 }

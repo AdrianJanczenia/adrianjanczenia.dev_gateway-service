@@ -1,54 +1,42 @@
-# Adrian Janczenia - Gateway Service
+# Gateway service
 
-The **Gateway Service** acts as the central entry point for the portfolio microservices ecosystem. It is responsible for aggregating requests from the front-end, orchestrating communication between internal services, and performing protocol translation.
+The gateway exposes an HTTP API to the front end and connects it to the content and CAPTCHA services. It retrieves localized content over gRPC, requests CV download tokens through RabbitMQ, and forwards CAPTCHA and PDF requests over HTTP. Handlers translate transport data and errors; processes coordinate each use case; service adapters own the protocol-specific code.
 
-## Service Role
+## HTTP API
 
-This service serves as a facade, providing a standardized REST API. Its primary responsibilities include:
+| Method | Path | Downstream operation |
+| --- | --- | --- |
+| `GET` | `/api/v1/content` | Read localized content from the content service over gRPC. |
+| `POST` | `/api/v1/cv-request` | Request a CV token from the content service through RabbitMQ. |
+| `GET` | `/api/v1/download/cv` | Stream a PDF from the content service over HTTP. |
+| `GET` | `/api/v1/pow` | Request a signed PoW challenge from the CAPTCHA service. |
+| `POST` | `/api/v1/captcha` | Submit PoW and request an image CAPTCHA. |
+| `POST` | `/api/v1/captcha-verify` | Verify a CAPTCHA answer. |
 
-- **Protocol Translation**: Converting external REST HTTP requests into internal gRPC or RabbitMQ RPC calls.
-- **Data Aggregation**: Fetching and merging localized content from the Content Service.
-- **Error Normalization**: Advanced mapping of internal errors to correct HTTP statuses (e.g., 400 for invalid Captcha, 410 for expired session) instead of generic 500 errors.
-- **Secure Proxying**: Acting as a secure intermediary for streaming PDF files with strict header verification.
+Responses use HTTP status codes and distinct machine-readable error slugs. The gateway validates each downstream HTTP error slug against its status; an invalid or missing error payload becomes `502 error_bad_gateway`. The old `error_message` slug remains accepted with its HTTP status during a service rollout. The CV download path accepts a nonempty `token` and `lang`, forwards only selected response headers, and sends `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
 
-## Architecture
+## RabbitMQ request/reply
 
-The project follows a rigorous layered architecture to ensure high testability, scalability, and clear separation of concerns.
+The gateway creates an exclusive, automatically deleted reply queue for each connection. Each request has a unique correlation ID. The client keeps pending replies in a synchronized map, publishes on a separate channel in confirm mode, and checks mandatory returns for requests without a route. It limits concurrent in-flight requests to 64, applies a ten-second request deadline, and reconnects after a connection failure. A publisher confirmation means RabbitMQ accepted the publish; the client still waits for the correlated reply.
 
-### Layered Pattern: Handler -> Process -> Task
-1. Handler (Transport Layer): Handles HTTP-specific logic, input validation, and mapping internal domain errors to standardized JSON responses (slugs).
-2. Process (Orchestration Layer): Contains the core business logic, managing the flow of data between different tasks and services.
-3. Task / Service (Action Layer): Atomic technical operations, such as calling a gRPC procedure, publishing a message to a RabbitMQ queue, or performing internal HTTP requests.
+## Configuration
 
-## Technical Specification
+The module requires Go 1.25.1 (see `go.mod`). `APP_ENV=production` selects `config/production/config.yml`; otherwise the local file is used. These environment variables can override service addresses in YAML: `CONTENT_SERVICE_GRPC_ADDR`, `CONTENT_SERVICE_HTTP_ADDR`, and `CAPTCHA_SERVICE_HTTP_ADDR`. Supply `RABBITMQ_URL` through the environment; its YAML field is intentionally empty. The YAML file also defines the HTTP port, RabbitMQ exchange and routing key, and startup retry policy.
 
-- Go: 1.23+
-- gRPC: High-performance synchronous communication for content retrieval.
-- RabbitMQ: Asynchronous message-driven architecture for decoupled CV token requests.
-- HTTP Client: Enhanced Captcha Service client with slug-based error handling.
+The HTTP server bounds request headers and bodies. Content gRPC calls, CAPTCHA HTTP calls, and the RabbitMQ request/reply path have explicit deadlines. The gRPC client uses an internal insecure transport as configured in `internal/app`; deploy it only within a network boundary appropriate for that choice.
 
-## API Documentation
+From the repository root, start its downstream services and RabbitMQ, provide their addresses in configuration, and run `go run .`. The `Dockerfile` is available for container builds.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /api/v1/content | GET | Retrieves localized page content. |
-| /api/v1/cv-request | POST | Authenticates user and requests a CV download token via RabbitMQ. |
-| /api/v1/download/cv | GET | Securely streams the CV PDF file. |
-| /api/v1/pow | GET | Fetches a seed for the Proof of Work mechanism. |
-| /api/v1/captcha | POST | Generates a Captcha image based on solved PoW. |
-| /api/v1/captcha-verify | POST | Verifies the provided Captcha code. |
+## Verification
 
-## Development and Deployment
+```sh
+go test -race ./...
+```
 
-### Build Optimized Docker Image
-docker build -t gateway-service .
+An opt-in integration test checks RabbitMQ correlation under concurrent requests, unroutable requests, and reconnection:
 
-### Execute Unit Tests
-go test -v ./...
+```sh
+go test -race -tags=integration ./internal/service/content_service/rabbitmq
+```
 
-## Error Handling Design
-
-The system implements a unified error mapping mechanism using a custom AppError type. This ensures that every failure returned to the front-end contains a consistent HTTP status and a machine-readable slug (e.g., error_cv_auth), enabling precise error handling on the client side.
-
----
-Adrian Janczenia
+Set `RABBIT_TEST_URL` to an isolated RabbitMQ instance before running it. The test skips when the variable is unset and creates temporary topology in the selected broker.

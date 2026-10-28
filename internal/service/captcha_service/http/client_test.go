@@ -35,6 +35,14 @@ func TestClient_GetPow(t *testing.T) {
 			want:    nil,
 			wantErr: errors.ErrInvalidSignature,
 		},
+		{
+			name: "contradictory upstream error",
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusNotFound)
+				json.NewEncoder(w).Encode(map[string]string{"error": "error_pow_signature"})
+			},
+			wantErr: errors.ErrBadGateway,
+		},
 	}
 
 	for _, tt := range tests {
@@ -68,7 +76,7 @@ func TestClient_GetCaptcha(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]string{"captchaId": "id123", "captchaImg": "img_b64"})
 			},
-			want:    &GetCaptchaResponse{CaptchaId: "id123", CaptchaImg: "img_b64"},
+			want:    &GetCaptchaResponse{CaptchaID: "id123", CaptchaImg: "img_b64"},
 			wantErr: nil,
 		},
 		{
@@ -93,7 +101,7 @@ func TestClient_GetCaptcha(t *testing.T) {
 			if err != tt.wantErr {
 				t.Errorf("GetCaptcha() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if tt.want != nil && (got.CaptchaId != tt.want.CaptchaId || got.CaptchaImg != tt.want.CaptchaImg) {
+			if tt.want != nil && (got.CaptchaID != tt.want.CaptchaID || got.CaptchaImg != tt.want.CaptchaImg) {
 				t.Errorf("GetCaptcha() got = %v, want %v", got, tt.want)
 			}
 		})
@@ -113,7 +121,7 @@ func TestClient_VerifyCaptcha(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]string{"captchaId": "id123"})
 			},
-			want:    &VerifyCaptchaResponse{CaptchaId: "id123"},
+			want:    &VerifyCaptchaResponse{CaptchaID: "id123"},
 			wantErr: nil,
 		},
 		{
@@ -138,7 +146,7 @@ func TestClient_VerifyCaptcha(t *testing.T) {
 			if err != tt.wantErr {
 				t.Errorf("VerifyCaptcha() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if tt.want != nil && got.CaptchaId != tt.want.CaptchaId {
+			if tt.want != nil && got.CaptchaID != tt.want.CaptchaID {
 				t.Errorf("VerifyCaptcha() got = %v, want %v", got, tt.want)
 			}
 		})

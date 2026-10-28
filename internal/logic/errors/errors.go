@@ -24,22 +24,26 @@ func (e *AppError) Unwrap() error {
 }
 
 var (
-	ErrInternalServerError = &AppError{HTTPStatus: http.StatusInternalServerError, Slug: "error_cv_server"}
-	ErrServiceUnavailable  = &AppError{HTTPStatus: http.StatusServiceUnavailable, Slug: "error_message"}
-	ErrMethodNotAllowed    = &AppError{HTTPStatus: http.StatusMethodNotAllowed, Slug: "error_message"}
-	ErrInvalidInput        = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_message"}
-	ErrUnsupportedLanguage = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_message"}
+	ErrInternalServerError = &AppError{HTTPStatus: http.StatusInternalServerError, Slug: "error_internal"}
+	ErrCVServer            = &AppError{HTTPStatus: http.StatusInternalServerError, Slug: "error_cv_server"}
+	ErrServiceUnavailable  = &AppError{HTTPStatus: http.StatusServiceUnavailable, Slug: "error_service_unavailable"}
+	ErrBadGateway          = &AppError{HTTPStatus: http.StatusBadGateway, Slug: "error_bad_gateway"}
+	ErrMethodNotAllowed    = &AppError{HTTPStatus: http.StatusMethodNotAllowed, Slug: "error_method_not_allowed"}
+	ErrInvalidInput        = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_invalid_input"}
+	ErrUnsupportedLanguage = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_unsupported_language"}
 	ErrInvalidPassword     = &AppError{HTTPStatus: http.StatusUnauthorized, Slug: "error_cv_auth"}
 	ErrCVNotFound          = &AppError{HTTPStatus: http.StatusNotFound, Slug: "error_cv_not_found"}
 	ErrCVExpired           = &AppError{HTTPStatus: http.StatusGone, Slug: "error_cv_expired"}
-	ErrContentNotFound     = &AppError{HTTPStatus: http.StatusNotFound, Slug: "error_message"}
+	ErrContentNotFound     = &AppError{HTTPStatus: http.StatusNotFound, Slug: "error_content_not_found"}
 	ErrInvalidSignature    = &AppError{HTTPStatus: http.StatusForbidden, Slug: "error_pow_signature"}
 	ErrSeedAlreadyUsed     = &AppError{HTTPStatus: http.StatusConflict, Slug: "error_pow_double_spend"}
 	ErrPowExpired          = &AppError{HTTPStatus: http.StatusGone, Slug: "error_pow_expired"}
 	ErrInsufficientWork    = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_pow_work"}
 	ErrCaptchaNotFound     = &AppError{HTTPStatus: http.StatusNotFound, Slug: "error_captcha_not_found"}
 	ErrInvalidCaptchaValue = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_captcha_invalid"}
+	ErrCaptchaNotSolved    = &AppError{HTTPStatus: http.StatusForbidden, Slug: "error_captcha_not_solved"}
 	ErrNoTriesLeft         = &AppError{HTTPStatus: http.StatusGone, Slug: "error_captcha_expired"}
+	ErrCaptchaServer       = &AppError{HTTPStatus: http.StatusInternalServerError, Slug: "error_captcha_server"}
 )
 
 func FromSlug(slug string) *AppError {
@@ -51,7 +55,11 @@ func FromSlug(slug string) *AppError {
 	case "error_cv_not_found":
 		return ErrCVNotFound
 	case "error_cv_server":
+		return ErrCVServer
+	case "error_internal":
 		return ErrInternalServerError
+	case "error_captcha_server":
+		return ErrCaptchaServer
 	case "error_pow_signature":
 		return ErrInvalidSignature
 	case "error_pow_double_spend":
@@ -64,36 +72,47 @@ func FromSlug(slug string) *AppError {
 		return ErrCaptchaNotFound
 	case "error_captcha_invalid":
 		return ErrInvalidCaptchaValue
+	case "error_captcha_not_solved":
+		return ErrCaptchaNotSolved
 	case "error_captcha_expired":
 		return ErrNoTriesLeft
 	case "error_message":
 		return ErrServiceUnavailable
+	case "error_service_unavailable":
+		return ErrServiceUnavailable
+	case "error_bad_gateway":
+		return ErrBadGateway
+	case "error_method_not_allowed":
+		return ErrMethodNotAllowed
+	case "error_invalid_input":
+		return ErrInvalidInput
+	case "error_unsupported_language":
+		return ErrUnsupportedLanguage
+	case "error_content_not_found":
+		return ErrContentNotFound
 	default:
 		return ErrInternalServerError
 	}
 }
 
-func FromHTTPStatus(status int) *AppError {
-	switch status {
-	case http.StatusBadRequest:
-		return ErrInvalidInput
-	case http.StatusUnauthorized:
-		return ErrInvalidPassword
-	case http.StatusNotFound:
-		return ErrCVNotFound
-	case http.StatusGone:
-		return ErrCVExpired
-	case http.StatusMethodNotAllowed:
-		return ErrMethodNotAllowed
-	case http.StatusServiceUnavailable:
-		return ErrServiceUnavailable
-	case http.StatusForbidden:
-		return ErrInvalidSignature
-	case http.StatusConflict:
-		return ErrSeedAlreadyUsed
-	default:
-		return ErrInternalServerError
+func FromUpstream(status int, slug string) *AppError {
+	if slug == "error_message" {
+		switch status {
+		case http.StatusBadRequest:
+			return ErrInvalidInput
+		case http.StatusMethodNotAllowed:
+			return ErrMethodNotAllowed
+		case http.StatusNotFound:
+			return ErrContentNotFound
+		case http.StatusServiceUnavailable:
+			return ErrServiceUnavailable
+		}
 	}
+	appErr := FromSlug(slug)
+	if slug == appErr.Slug && status == appErr.HTTPStatus {
+		return appErr
+	}
+	return ErrBadGateway
 }
 
 func WriteJSON(w http.ResponseWriter, err error) {

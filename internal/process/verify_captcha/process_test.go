@@ -26,9 +26,9 @@ func TestProcess_VerifyCaptcha(t *testing.T) {
 		{
 			name: "success",
 			verifyCaptchaFunc: func(ctx context.Context, body http.VerifyCaptchaRequest) (*http.VerifyCaptchaResponse, error) {
-				return &http.VerifyCaptchaResponse{CaptchaId: "id"}, nil
+				return &http.VerifyCaptchaResponse{CaptchaID: "id"}, nil
 			},
-			want:    &http.VerifyCaptchaResponse{CaptchaId: "id"},
+			want:    &http.VerifyCaptchaResponse{CaptchaID: "id"},
 			wantErr: false,
 		},
 		{
@@ -49,7 +49,7 @@ func TestProcess_VerifyCaptcha(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Process() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if tt.want != nil && got.CaptchaId != tt.want.CaptchaId {
+			if tt.want != nil && got.CaptchaID != tt.want.CaptchaID {
 				t.Errorf("Process() got = %v, want %v", got, tt.want)
 			}
 		})

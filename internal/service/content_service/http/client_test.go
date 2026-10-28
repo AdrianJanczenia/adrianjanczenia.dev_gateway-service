@@ -28,11 +28,19 @@ func TestHTTPClient_ProxyCVDownload(t *testing.T) {
 			checkHeaders: true,
 		},
 		{
-			name: "content service returns 404",
+			name: "content service returns CV not found",
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(`{"error":"error_cv_not_found"}`))
+			},
+			wantErr: errors.ErrCVNotFound,
+		},
+		{
+			name: "missing error body is an upstream failure",
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNotFound)
 			},
-			wantErr: errors.ErrCVNotFound,
+			wantErr: errors.ErrBadGateway,
 		},
 	}
 

@@ -33,7 +33,7 @@ func TestHandler_GetCaptcha(t *testing.T) {
 			method: http.MethodPost,
 			body:   service.GetCaptchaRequest{Seed: "s"},
 			processFunc: func(ctx context.Context, body service.GetCaptchaRequest) (*service.GetCaptchaResponse, error) {
-				return &service.GetCaptchaResponse{CaptchaId: "id"}, nil
+				return &service.GetCaptchaResponse{CaptchaID: "id"}, nil
 			},
 			wantStatus: http.StatusOK,
 		},

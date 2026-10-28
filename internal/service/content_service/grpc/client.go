@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"time"
 
 	pb "github.com/AdrianJanczenia/adrianjanczenia.dev_content-service/api/proto/v1"
 	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
@@ -19,6 +20,9 @@ func NewClient(conn *grpc.ClientConn) *Client {
 }
 
 func (c *Client) GetContent(ctx context.Context, lang string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	resp, err := c.client.Handle(ctx, &pb.GetContentRequest{Lang: lang})
 	if err != nil {
 		st, ok := status.FromError(err)

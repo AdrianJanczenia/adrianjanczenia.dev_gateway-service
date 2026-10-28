@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -36,6 +37,9 @@ type App struct {
 }
 
 func Build(cfg *registry.Config) (*App, error) {
+	if cfg == nil || cfg.Infrastructure.Retry.MaxAttempts < 1 || cfg.Infrastructure.Retry.DelaySeconds < 0 || cfg.Server.HTTPPort == "" || cfg.Services.Content.GRPC.Addr == "" || cfg.Services.Content.HTTP.Addr == "" || cfg.Services.Captcha.HTTP.Addr == "" || cfg.RabbitMQ.URL == "" || cfg.RabbitMQ.Topology.Exchange == "" || cfg.RabbitMQ.Topology.CVRequestRoutingKey == "" {
+		return nil, fmt.Errorf("invalid gateway configuration")
+	}
 	maxRetries := cfg.Infrastructure.Retry.MaxAttempts
 	retryDelay := cfg.Infrastructure.Retry.DelaySeconds
 	var err error
@@ -45,21 +49,30 @@ func Build(cfg *registry.Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("INFO: successfully connected to gRPC server")
+	log.Println("INFO: content gRPC client initialized")
+	cleanupGRPC := true
+	defer func() {
+		if cleanupGRPC {
+			_ = grpcConn.Close()
+		}
+	}()
 	contentGRPCClient := serviceGRPC.NewClient(grpcConn)
 
 	var rabbitClient *serviceRabbitMQ.Client
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		if rabbitClient, err = serviceRabbitMQ.NewClient(cfg.RabbitMQ.URL, cfg.RabbitMQ.Topology.Exchange); err == nil {
 			log.Println("INFO: successfully connected to RabbitMQ")
 			break
 		}
-		log.Printf("INFO: could not connect to RabbitMQ, retrying in %v... (%d/%d)", retryDelay, i+1, maxRetries)
-		time.Sleep(retryDelay)
+		if i+1 < maxRetries {
+			log.Printf("INFO: could not connect to RabbitMQ, retrying in %v... (%d/%d)", retryDelay, i+1, maxRetries)
+			time.Sleep(retryDelay)
+		}
 	}
 	if err != nil {
 		return nil, err
 	}
+	cleanupGRPC = false
 
 	downloadCvHTTPClient := serviceHTTP.NewClient(cfg.Services.Content.HTTP.Addr)
 	captchaHTTPClient := serviceCaptcha.NewClient(&http.Client{Timeout: 10 * time.Second}, cfg.Services.Captcha.HTTP.Addr)
@@ -88,8 +101,13 @@ func Build(cfg *registry.Config) (*App, error) {
 	mux.HandleFunc("/api/v1/captcha-verify", verifyCaptchaHandler.Handle)
 
 	httpServer := &http.Server{
-		Addr: ":" + cfg.Server.HTTPPort,
+		Addr:              ":" + cfg.Server.HTTPPort,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    32 << 10,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
 			r.URL.Path = strings.TrimSuffix(r.URL.Path, "/")
 			mux.ServeHTTP(w, r)
 		}),

@@ -3,6 +3,8 @@ package get_cv_token
 import (
 	"context"
 	"encoding/json"
+
+	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
 )
 
 type RabbitMQClient interface {
@@ -32,8 +34,13 @@ func (p *Process) Process(ctx context.Context, password, lang, captchaID string)
 	var resp struct {
 		Token string `json:"token"`
 	}
+
 	if err := json.Unmarshal(responseBody, &resp); err != nil {
-		return "", err
+		return "", errors.ErrServiceUnavailable
+	}
+
+	if resp.Token == "" {
+		return "", errors.ErrServiceUnavailable
 	}
 
 	return resp.Token, nil

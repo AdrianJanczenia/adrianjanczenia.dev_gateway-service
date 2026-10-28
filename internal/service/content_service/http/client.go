@@ -2,10 +2,12 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service/internal/logic/errors"
 )
@@ -16,9 +18,12 @@ type Client struct {
 }
 
 func NewClient(baseURL string) *Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.ResponseHeaderTimeout = 10 * time.Second
+
 	return &Client{
 		baseURL: baseURL,
-		client:  &http.Client{},
+		client:  &http.Client{Transport: transport},
 	}
 }
 
@@ -27,8 +32,9 @@ func (c *Client) ProxyCVDownload(ctx context.Context, w http.ResponseWriter, tok
 	params.Add("token", token)
 	params.Add("lang", lang)
 
-	fullUrl := fmt.Sprintf("%s/download/cv?%s", c.baseURL, params.Encode())
-	req, err := http.NewRequestWithContext(ctx, "GET", fullUrl, nil)
+	fullURL := fmt.Sprintf("%s/download/cv?%s", c.baseURL, params.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
 	if err != nil {
 		return errors.ErrInternalServerError
 	}
@@ -40,7 +46,20 @@ func (c *Client) ProxyCVDownload(ctx context.Context, w http.ResponseWriter, tok
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.FromHTTPStatus(resp.StatusCode)
+		data, err := io.ReadAll(io.LimitReader(resp.Body, 4097))
+		if err != nil || len(data) > 4096 {
+			return errors.ErrBadGateway
+		}
+
+		var body struct {
+			Error string `json:"error"`
+		}
+
+		if err := json.Unmarshal(data, &body); err != nil {
+			return errors.ErrBadGateway
+		}
+
+		return errors.FromUpstream(resp.StatusCode, body.Error)
 	}
 
 	allowList := map[string]bool{
@@ -57,6 +76,8 @@ func (c *Client) ProxyCVDownload(ctx context.Context, w http.ResponseWriter, tok
 			}
 		}
 	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Referrer-Policy", "no-referrer")
 
 	w.WriteHeader(resp.StatusCode)
 	_, err = io.Copy(w, resp.Body)

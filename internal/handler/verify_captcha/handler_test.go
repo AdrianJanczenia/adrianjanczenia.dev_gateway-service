@@ -31,16 +31,16 @@ func TestHandler_VerifyCaptcha(t *testing.T) {
 		{
 			name:   "success",
 			method: http.MethodPost,
-			body:   service.VerifyCaptchaRequest{CaptchaId: "id", CaptchaValue: "123"},
+			body:   service.VerifyCaptchaRequest{CaptchaID: "id", CaptchaValue: "123"},
 			processFunc: func(ctx context.Context, body service.VerifyCaptchaRequest) (*service.VerifyCaptchaResponse, error) {
-				return &service.VerifyCaptchaResponse{CaptchaId: "id"}, nil
+				return &service.VerifyCaptchaResponse{CaptchaID: "id"}, nil
 			},
 			wantStatus: http.StatusOK,
 		},
 		{
 			name:   "process error",
 			method: http.MethodPost,
-			body:   service.VerifyCaptchaRequest{CaptchaId: "id", CaptchaValue: "123"},
+			body:   service.VerifyCaptchaRequest{CaptchaID: "id", CaptchaValue: "123"},
 			processFunc: func(ctx context.Context, body service.VerifyCaptchaRequest) (*service.VerifyCaptchaResponse, error) {
 				return nil, errors.New("err")
 			},

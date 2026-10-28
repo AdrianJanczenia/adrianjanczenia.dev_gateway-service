@@ -65,3 +65,15 @@ func TestHandler_DownloadCV(t *testing.T) {
 		})
 	}
 }
+
+func TestHandlerDoesNotAppendJSONAfterStreamStarts(t *testing.T) {
+	h := NewHandler(&mockDownloadCVProcess{executeFunc: func(_ context.Context, w http.ResponseWriter, _, _ string) error {
+		_, _ = w.Write([]byte("%PDF"))
+		return errors.New("upstream disconnected")
+	}})
+	w := httptest.NewRecorder()
+	h.Handle(w, httptest.NewRequest(http.MethodGet, "/api/v1/download/cv?token=abc&lang=pl", nil))
+	if w.Code != http.StatusOK || w.Body.String() != "%PDF" {
+		t.Fatalf("response = %d %q", w.Code, w.Body.String())
+	}
+}

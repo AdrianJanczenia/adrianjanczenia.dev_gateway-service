@@ -20,7 +20,10 @@ func NewHandler(p DownloadCVProcess) *Handler {
 }
 
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Referrer-Policy", "no-referrer")
 	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
 		errors.WriteJSON(w, errors.ErrMethodNotAllowed)
 		return
 	}
@@ -33,8 +36,23 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.process.Execute(r.Context(), w, token, lang); err != nil {
+	tracked := &responseTracker{ResponseWriter: w}
+	if err := h.process.Execute(r.Context(), tracked, token, lang); err != nil && !tracked.started {
 		errors.WriteJSON(w, err)
-		return
 	}
+}
+
+type responseTracker struct {
+	http.ResponseWriter
+	started bool
+}
+
+func (w *responseTracker) WriteHeader(status int) {
+	w.started = true
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *responseTracker) Write(p []byte) (int, error) {
+	w.started = true
+	return w.ResponseWriter.Write(p)
 }

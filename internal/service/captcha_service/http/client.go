@@ -58,7 +58,7 @@ type GetCaptchaRequest struct {
 }
 
 type GetCaptchaResponse struct {
-	CaptchaId  string `json:"captchaId"`
+	CaptchaID  string `json:"captchaId"`
 	CaptchaImg string `json:"captchaImg"`
 }
 
@@ -93,12 +93,12 @@ func (c *Client) GetCaptcha(ctx context.Context, body GetCaptchaRequest) (*GetCa
 }
 
 type VerifyCaptchaRequest struct {
-	CaptchaId    string `json:"captchaId"`
+	CaptchaID    string `json:"captchaId"`
 	CaptchaValue string `json:"captchaValue"`
 }
 
 type VerifyCaptchaResponse struct {
-	CaptchaId string `json:"captchaId"`
+	CaptchaID string `json:"captchaId"`
 }
 
 func (c *Client) VerifyCaptcha(ctx context.Context, body VerifyCaptchaRequest) (*VerifyCaptchaResponse, error) {
@@ -132,17 +132,18 @@ func (c *Client) VerifyCaptcha(ctx context.Context, body VerifyCaptchaRequest) (
 }
 
 func (c *Client) handleError(resp *http.Response) error {
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return errors.FromHTTPStatus(resp.StatusCode)
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 4097))
+	if err != nil || len(data) > 4096 {
+		return errors.ErrBadGateway
 	}
 
-	var body map[string]string
-	if err := json.Unmarshal(bodyBytes, &body); err == nil {
-		if slug, ok := body["error"]; ok {
-			return errors.FromSlug(slug)
-		}
+	var body struct {
+		Error string `json:"error"`
 	}
 
-	return errors.FromHTTPStatus(resp.StatusCode)
+	if err := json.Unmarshal(data, &body); err != nil {
+		return errors.ErrBadGateway
+	}
+
+	return errors.FromUpstream(resp.StatusCode, body.Error)
 }

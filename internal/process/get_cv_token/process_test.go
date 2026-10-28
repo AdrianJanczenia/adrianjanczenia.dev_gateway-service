@@ -45,6 +45,14 @@ func TestProcess_GetCVToken(t *testing.T) {
 			want:    "",
 			wantErr: true,
 		},
+		{
+			name: "missing token",
+			requestFunc: func(ctx context.Context, rk string, p any) ([]byte, error) {
+				return []byte(`{}`), nil
+			},
+			want:    "",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

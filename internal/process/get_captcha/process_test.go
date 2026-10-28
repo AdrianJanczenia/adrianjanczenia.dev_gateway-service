@@ -26,9 +26,9 @@ func TestProcess_GetCaptcha(t *testing.T) {
 		{
 			name: "success",
 			getCaptchaFunc: func(ctx context.Context, body http.GetCaptchaRequest) (*http.GetCaptchaResponse, error) {
-				return &http.GetCaptchaResponse{CaptchaId: "id", CaptchaImg: "img"}, nil
+				return &http.GetCaptchaResponse{CaptchaID: "id", CaptchaImg: "img"}, nil
 			},
-			want:    &http.GetCaptchaResponse{CaptchaId: "id", CaptchaImg: "img"},
+			want:    &http.GetCaptchaResponse{CaptchaID: "id", CaptchaImg: "img"},
 			wantErr: false,
 		},
 		{
@@ -49,7 +49,7 @@ func TestProcess_GetCaptcha(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Process() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if tt.want != nil && (got.CaptchaId != tt.want.CaptchaId || got.CaptchaImg != tt.want.CaptchaImg) {
+			if tt.want != nil && (got.CaptchaID != tt.want.CaptchaID || got.CaptchaImg != tt.want.CaptchaImg) {
 				t.Errorf("Process() got = %v, want %v", got, tt.want)
 			}
 		})
