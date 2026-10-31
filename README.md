@@ -25,7 +25,17 @@ The module requires Go 1.25.1 (see `go.mod`). `APP_ENV=production` selects `conf
 
 The HTTP server bounds request headers and bodies. Content gRPC calls, CAPTCHA HTTP calls, and the RabbitMQ request/reply path have explicit deadlines. The gRPC client uses an internal insecure transport as configured in `internal/app`; deploy it only within a network boundary appropriate for that choice.
 
-From the repository root, start its downstream services and RabbitMQ, provide their addresses in configuration, and run `go run .`. The `Dockerfile` is available for container builds.
+## Run locally
+
+1. Start the content service, CAPTCHA service, and RabbitMQ. The content service also needs Redis; the CAPTCHA service and content service must share its instance for the CV flow.
+2. Set `RABBITMQ_URL` in the environment. When running the gateway directly on the host, also set `CONTENT_SERVICE_GRPC_ADDR`, `CONTENT_SERVICE_HTTP_ADDR`, and `CAPTCHA_SERVICE_HTTP_ADDR` to addresses reachable from the host. The supplied local YAML uses container DNS names (`content-service` and `captcha-service`), which normally do not resolve on the host.
+3. Run `go run .` from this repository root. The local HTTP port is 8082. With the content service running, check the content route:
+
+   ```sh
+   curl -i 'http://127.0.0.1:8082/api/v1/content?lang=pl'
+   ```
+
+The `Dockerfile` builds a container image, but service addresses and the RabbitMQ URL must still be reachable and configured in its runtime environment.
 
 ## Verification
 
