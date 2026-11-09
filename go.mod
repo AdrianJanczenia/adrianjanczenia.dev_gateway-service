@@ -1,6 +1,6 @@
 module github.com/AdrianJanczenia/adrianjanczenia.dev_gateway-service
 
-go 1.25.1
+go 1.27.3
 
 require (
 	github.com/AdrianJanczenia/adrianjanczenia.dev_content-service v0.0.0-20251013032944-8808eb0cb72c

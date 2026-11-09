@@ -12,11 +12,11 @@ import (
 )
 
 type mockGetCVTokenProcess struct {
-	executeFunc func(ctx context.Context, password, lang, captchaID string) (string, error)
+	executeFunc func(ctx context.Context, code, lang, captchaID string) (string, error)
 }
 
-func (m *mockGetCVTokenProcess) Process(ctx context.Context, password, lang, captchaID string) (string, error) {
-	return m.executeFunc(ctx, password, lang, captchaID)
+func (m *mockGetCVTokenProcess) Process(ctx context.Context, code, lang, captchaID string) (string, error) {
+	return m.executeFunc(ctx, code, lang, captchaID)
 }
 
 func TestHandler_GetCVToken(t *testing.T) {
@@ -31,7 +31,7 @@ func TestHandler_GetCVToken(t *testing.T) {
 		{
 			name:   "success",
 			method: http.MethodPost,
-			body:   map[string]string{"password": "123", "lang": "pl", "captchaId": "123"},
+			body:   map[string]string{"code": "123", "lang": "pl", "captchaId": "123"},
 			executeFunc: func(ctx context.Context, p, l, c string) (string, error) {
 				return "tok", nil
 			},
@@ -52,9 +52,9 @@ func TestHandler_GetCVToken(t *testing.T) {
 		{
 			name:   "auth error",
 			method: http.MethodPost,
-			body:   map[string]string{"password": "wrong", "lang": "pl", "captchaId": "123"},
+			body:   map[string]string{"code": "wrong", "lang": "pl", "captchaId": "123"},
 			executeFunc: func(ctx context.Context, p, l, c string) (string, error) {
-				return "", appErrors.ErrInvalidPassword
+				return "", appErrors.ErrInvalidCode
 			},
 			wantStatus: http.StatusUnauthorized,
 		},

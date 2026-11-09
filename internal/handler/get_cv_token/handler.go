@@ -9,7 +9,7 @@ import (
 )
 
 type GetCVTokenProcess interface {
-	Process(ctx context.Context, password, lang, captchaID string) (string, error)
+	Process(ctx context.Context, code, lang, captchaID string) (string, error)
 }
 
 type Handler struct {
@@ -28,7 +28,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var payload struct {
-		Password  string `json:"password"`
+		Code      string `json:"code"`
 		Lang      string `json:"lang"`
 		CaptchaID string `json:"captchaId"`
 	}
@@ -38,7 +38,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cvToken, err := h.process.Process(r.Context(), payload.Password, payload.Lang, payload.CaptchaID)
+	cvToken, err := h.process.Process(r.Context(), payload.Code, payload.Lang, payload.CaptchaID)
 	if err != nil {
 		errors.WriteJSON(w, err)
 		return
