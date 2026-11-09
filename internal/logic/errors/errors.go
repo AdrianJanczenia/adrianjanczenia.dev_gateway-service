@@ -31,9 +31,12 @@ var (
 	ErrMethodNotAllowed    = &AppError{HTTPStatus: http.StatusMethodNotAllowed, Slug: "error_method_not_allowed"}
 	ErrInvalidInput        = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_invalid_input"}
 	ErrUnsupportedLanguage = &AppError{HTTPStatus: http.StatusBadRequest, Slug: "error_unsupported_language"}
-	ErrInvalidPassword     = &AppError{HTTPStatus: http.StatusUnauthorized, Slug: "error_cv_auth"}
+	ErrInvalidCode         = &AppError{HTTPStatus: http.StatusUnauthorized, Slug: "error_cv_auth"}
 	ErrCVNotFound          = &AppError{HTTPStatus: http.StatusNotFound, Slug: "error_cv_not_found"}
 	ErrCVExpired           = &AppError{HTTPStatus: http.StatusGone, Slug: "error_cv_expired"}
+	ErrCVCodeExpired       = &AppError{HTTPStatus: http.StatusGone, Slug: "error_cv_code_expired"}
+	ErrCVCodeInactive      = &AppError{HTTPStatus: http.StatusGone, Slug: "error_cv_code_inactive"}
+	ErrCVCodeLimit         = &AppError{HTTPStatus: http.StatusGone, Slug: "error_cv_code_limit"}
 	ErrContentNotFound     = &AppError{HTTPStatus: http.StatusNotFound, Slug: "error_content_not_found"}
 	ErrInvalidSignature    = &AppError{HTTPStatus: http.StatusForbidden, Slug: "error_pow_signature"}
 	ErrSeedAlreadyUsed     = &AppError{HTTPStatus: http.StatusConflict, Slug: "error_pow_double_spend"}
@@ -49,9 +52,15 @@ var (
 func FromSlug(slug string) *AppError {
 	switch slug {
 	case "error_cv_auth":
-		return ErrInvalidPassword
+		return ErrInvalidCode
 	case "error_cv_expired":
 		return ErrCVExpired
+	case "error_cv_code_expired":
+		return ErrCVCodeExpired
+	case "error_cv_code_inactive":
+		return ErrCVCodeInactive
+	case "error_cv_code_limit":
+		return ErrCVCodeLimit
 	case "error_cv_not_found":
 		return ErrCVNotFound
 	case "error_cv_server":

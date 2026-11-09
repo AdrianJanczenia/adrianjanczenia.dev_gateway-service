@@ -15,13 +15,15 @@ The gateway exposes an HTTP API to the front end and connects it to the content 
 
 Responses use HTTP status codes and distinct machine-readable error slugs. The gateway validates each downstream HTTP error slug against its status; an invalid or missing error payload becomes `502 error_bad_gateway`. The old `error_message` slug remains accepted with its HTTP status during a service rollout. The CV download path accepts a nonempty `token` and `lang`, forwards only selected response headers, and sends `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
 
+The CV request JSON uses `code`, `lang`, and `captchaId`. The gateway forwards those fields through RabbitMQ and returns specific error slugs for an expired, inactive, or used code. The content service owns the code lookup, reservation, and redemption.
+
 ## RabbitMQ request/reply
 
 The gateway creates an exclusive, automatically deleted reply queue for each connection. Each request has a unique correlation ID. The client keeps pending replies in a synchronized map, publishes on a separate channel in confirm mode, and checks mandatory returns for requests without a route. It limits concurrent in-flight requests to 64, applies a ten-second request deadline, and reconnects after a connection failure. A publisher confirmation means RabbitMQ accepted the publish; the client still waits for the correlated reply.
 
 ## Configuration
 
-The module requires Go 1.25.1 (see `go.mod`). `APP_ENV=production` selects `config/production/config.yml`; otherwise the local file is used. These environment variables can override service addresses in YAML: `CONTENT_SERVICE_GRPC_ADDR`, `CONTENT_SERVICE_HTTP_ADDR`, and `CAPTCHA_SERVICE_HTTP_ADDR`. Supply `RABBITMQ_URL` through the environment; its YAML field is intentionally empty. The YAML file also defines the HTTP port, RabbitMQ exchange and routing key, and startup retry policy.
+The module requires Go 1.27.3 (see `go.mod`). `APP_ENV=production` selects `config/production/config.yml`; otherwise the local file is used. These environment variables can override service addresses in YAML: `CONTENT_SERVICE_GRPC_ADDR`, `CONTENT_SERVICE_HTTP_ADDR`, and `CAPTCHA_SERVICE_HTTP_ADDR`. Supply `RABBITMQ_URL` through the environment; its YAML field is intentionally empty. The YAML file also defines the HTTP port, RabbitMQ exchange and routing key, and startup retry policy.
 
 The HTTP server bounds request headers and bodies. Content gRPC calls, CAPTCHA HTTP calls, and the RabbitMQ request/reply path have explicit deadlines. The gRPC client uses an internal insecure transport as configured in `internal/app`; deploy it only within a network boundary appropriate for that choice.
 

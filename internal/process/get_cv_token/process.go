@@ -23,8 +23,8 @@ func NewProcess(client RabbitMQClient, routingKey string) *Process {
 	}
 }
 
-func (p *Process) Process(ctx context.Context, password, lang, captchaID string) (string, error) {
-	payload := map[string]string{"password": password, "lang": lang, "captchaId": captchaID}
+func (p *Process) Process(ctx context.Context, code, lang, captchaID string) (string, error) {
+	payload := map[string]string{"code": code, "lang": lang, "captchaId": captchaID}
 
 	responseBody, err := p.rabbitClient.Request(ctx, p.routingKey, payload)
 	if err != nil {
